@@ -2,29 +2,18 @@ import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/gen
 import { BillData } from "../types";
 import { BILL_RESPONSE_SCHEMA, SYSTEM_INSTRUCTION, ANALYSIS_PROMPT, SUMMARY_PROMPT_TEMPLATE } from "../constants";
 
-// Função robusta para capturar a API Key em diferentes ambientes (Vite, Vercel, Local)
+// Função robusta para capturar a API Key exclusivamente via padrão Vite
 const getApiKey = (): string => {
-  // 1. Tenta pegar via import.meta.env (Padrão Vite)
   try {
-    // Cast para 'any' para evitar erros de TS se o compilador não reconhecer 'env'
+    // Cast para 'any' para evitar erros de TS se o compilador não reconhecer 'env' ou tipos do Vite na Vercel
     const meta = import.meta as any;
+    
     // Verifica se meta.env existe antes de tentar acessar a propriedade
     if (meta && meta.env && meta.env.VITE_API_KEY) {
       return meta.env.VITE_API_KEY;
     }
   } catch (e) {
-    // Silencia erros de acesso ao import.meta
-  }
-
-  // 2. Tenta pegar via process.env (Fallback para Node/Alguns ambientes de Build)
-  try {
-    // Acessa via globalThis para evitar erro TS2580 (Cannot find name 'process') sem @types/node
-    const globalEnv = globalThis as any;
-    if (globalEnv.process && globalEnv.process.env && globalEnv.process.env.VITE_API_KEY) {
-      return globalEnv.process.env.VITE_API_KEY;
-    }
-  } catch (e) {
-    // Silencia erros
+    console.warn("Erro ao acessar variáveis de ambiente via import.meta");
   }
 
   return '';
@@ -70,7 +59,7 @@ export const analyzeBillImage = async (base64Image: string, mimeType: string): P
         responseSchema: BILL_RESPONSE_SCHEMA,
         temperature: 0.1, // Low temperature for factual extraction
         // Safety Settings Permissivos para evitar bloqueio de leitura de documentos
-        // Usando Enums corretos do @google/genai
+        // Usando Enums corretos do @google/genai conforme exigido pelo TypeScript
         safetySettings: [
            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
