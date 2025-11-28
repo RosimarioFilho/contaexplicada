@@ -2,18 +2,19 @@ import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BillData } from "../types";
 import { BILL_RESPONSE_SCHEMA, SYSTEM_INSTRUCTION, ANALYSIS_PROMPT, SUMMARY_PROMPT_TEMPLATE } from "../constants";
 
-// Inicialização segura: O Vite substituirá process.env.API_KEY pelo valor real no build
+// O Vite substituirá process.env.API_KEY pelo valor da string configurada no vite.config.ts
+// Graças ao @types/node no tsconfig.json, o TypeScript não reclamará do 'process'.
 const API_KEY = process.env.API_KEY;
 
 if (!API_KEY) {
-  console.warn("Aviso: API_KEY não detectada nas variáveis de ambiente. Verifique o arquivo .env ou as configurações da Vercel.");
+  console.warn("Aviso: API_KEY não detectada. Verifique se VITE_API_KEY está configurada na Vercel.");
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY || '' });
 
 export const analyzeBillImage = async (base64Image: string, mimeType: string): Promise<BillData> => {
   try {
-    const modelId = "gemini-2.5-flash"; // Modelo rápido e eficiente
+    const modelId = "gemini-2.5-flash";
 
     // 1. Extração de Dados (OCR + Visão)
     const dataResponse = await ai.models.generateContent({
@@ -49,7 +50,7 @@ export const analyzeBillImage = async (base64Image: string, mimeType: string): P
     const jsonText = dataResponse.text;
     if (!jsonText) throw new Error("A IA retornou uma resposta vazia.");
     
-    // Limpeza de sanitização para remover blocos de código Markdown
+    // Limpeza de sanitização
     const cleanJson = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
 
     const billData = JSON.parse(cleanJson);

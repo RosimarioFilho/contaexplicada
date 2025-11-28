@@ -1,4 +1,4 @@
 /// <reference types="vite/client" />
 
-// Declaração manual do objeto process removida para evitar conflito de redeclaração ("Cannot redeclare block-scoped variable").
-// O ambiente deve prover os tipos de process (via @types/node) ou tratar como any.
+// As definições de 'process' agora são fornecidas pelo @types/node configurado no tsconfig.json.
+// Não é necessário declarar manualmente.
