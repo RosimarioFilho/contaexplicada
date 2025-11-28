@@ -1,0 +1,7 @@
+{
+  "name": "ContaExplicada",
+  "description": "Entenda sua conta de energia de forma simples e profissional.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
