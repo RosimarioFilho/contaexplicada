@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Upload, Camera, FileText, ShieldCheck, Search, FileJson, Sparkles, BrainCircuit, CheckCircle2, ChevronDown } from 'lucide-react';
+import { Upload, Camera, FileText, ShieldCheck, Search, FileJson, Sparkles, BrainCircuit, CheckCircle2, ChevronDown, Zap } from 'lucide-react';
 
 interface UploadScreenProps {
   onFileSelected: (file: File) => void;
@@ -92,6 +92,10 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onFileSelected }) => {
     }
   ];
 
+  const distributors = [
+    "Enel", "CPFL", "Cemig", "Light", "Copel", "Equatorial", "Neoenergia", "RGE", "Energisa", "Coelba", "Elektro"
+  ];
+
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
   };
@@ -107,11 +111,11 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onFileSelected }) => {
             Tecnologia RC Solar
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight leading-tight">
-            Sua conta de energia,<br/> 
-            <span className="text-brand-primary">finalmente explicada.</span>
+            Análise Inteligente da sua<br/> 
+            <span className="text-brand-primary">Conta de Energia</span>
           </h1>
           <p className="text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-            Use nossa IA para entender exatamente o que você paga e descubra se existe uma forma mais inteligente de consumir energia.
+            Vai emitir a <strong>2ª via da conta</strong>? Antes de pagar, use nossa IA para auditar erros, entender o que é TUSD/TE e descobrir se você está pagando impostos a mais.
           </p>
         </div>
 
@@ -130,7 +134,7 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onFileSelected }) => {
             
             <div className="text-center">
               <p className="font-bold text-2xl text-slate-800 mb-2">Arraste seu PDF ou Foto aqui</p>
-              <p className="text-slate-500">Ou escolha uma opção abaixo</p>
+              <p className="text-slate-500">Analise faturas de qualquer distribuidora</p>
             </div>
 
             <div className="flex flex-col sm:flex-row w-full gap-4 max-w-md mt-4">
@@ -172,10 +176,22 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onFileSelected }) => {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-400 font-medium bg-slate-100 px-4 py-2 rounded-full mb-20">
+        <div className="flex items-center gap-2 text-xs text-slate-400 font-medium bg-slate-100 px-4 py-2 rounded-full mb-12">
           <ShieldCheck size={14} className="text-green-500" />
           <span>Seus dados são processados de forma anônima e segura.</span>
         </div>
+
+        {/* SEO: Supported Distributors Section */}
+        <section className="w-full max-w-4xl mb-20 text-center">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Compatível com contas de todo o Brasil</h3>
+            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                {distributors.map((dist, i) => (
+                    <span key={i} className="text-lg font-semibold text-slate-500 hover:text-brand-primary cursor-default">
+                        {dist}
+                    </span>
+                ))}
+            </div>
+        </section>
 
         {/* SEO FAQ Section */}
         <section className="w-full max-w-3xl">
