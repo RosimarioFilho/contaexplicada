@@ -1,43 +1,15 @@
-import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BillData } from "../types";
 import { BILL_RESPONSE_SCHEMA, SYSTEM_INSTRUCTION, ANALYSIS_PROMPT, SUMMARY_PROMPT_TEMPLATE } from "../constants";
 
-// Função robusta para capturar a API Key exclusivamente via padrão Vite
-const getApiKey = (): string => {
-  try {
-    // Cast para 'any' para evitar erros de TS se o compilador não reconhecer 'env' ou tipos do Vite na Vercel
-    const meta = import.meta as any;
-    
-    // Verifica se meta.env existe antes de tentar acessar a propriedade
-    if (meta && meta.env && meta.env.VITE_API_KEY) {
-      return meta.env.VITE_API_KEY;
-    }
-  } catch (e) {
-    console.warn("Erro ao acessar variáveis de ambiente via import.meta");
-  }
-
-  return '';
-};
-
-const apiKey = getApiKey();
-
-// Se não tiver chave, não quebra a inicialização do app, mas vai falhar ao tentar usar
-const ai = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
-
-if (!apiKey) {
-  console.warn("⚠️ VITE_API_KEY não encontrada. O upload falhará se não for configurada na Vercel.");
-}
+// Inicialização conforme diretrizes: usar process.env.API_KEY diretamente
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const analyzeBillImage = async (base64Image: string, mimeType: string): Promise<BillData> => {
-  // Validação explícita na hora da chamada
-  if (!ai || !apiKey) {
-    throw new Error("Chave de API não configurada. Configure a variável de ambiente VITE_API_KEY no painel da Vercel.");
-  }
-
   try {
-    const modelId = "gemini-2.5-flash"; // High performance, low latency
+    const modelId = "gemini-2.5-flash"; // Modelo rápido e eficiente
 
-    // 1. Extract Data (OCR + Interpretation)
+    // 1. Extração de Dados (OCR + Visão)
     const dataResponse = await ai.models.generateContent({
       model: modelId,
       contents: {
@@ -57,9 +29,8 @@ export const analyzeBillImage = async (base64Image: string, mimeType: string): P
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseSchema: BILL_RESPONSE_SCHEMA,
-        temperature: 0.1, // Low temperature for factual extraction
-        // Safety Settings Permissivos para evitar bloqueio de leitura de documentos
-        // Usando Enums corretos do @google/genai conforme exigido pelo TypeScript
+        temperature: 0.1,
+        // Configurações de segurança permissivas para leitura de documentos
         safetySettings: [
            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -70,33 +41,32 @@ export const analyzeBillImage = async (base64Image: string, mimeType: string): P
     });
 
     const jsonText = dataResponse.text;
-    if (!jsonText) throw new Error("Falha ao extrair dados da conta (Resposta vazia da IA).");
+    if (!jsonText) throw new Error("A IA retornou uma resposta vazia.");
     
-    // Limpeza de sanitização caso a IA mande markdown ```json
+    // Limpeza de sanitização para remover blocos de código Markdown
     const cleanJson = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
 
     const billData = JSON.parse(cleanJson);
 
-    // 2. Generate Friendly Summary (Text Generation)
+    // 2. Geração de Resumo (Texto Criativo)
     const summaryResponse = await ai.models.generateContent({
       model: modelId,
       contents: SUMMARY_PROMPT_TEMPLATE(billData),
       config: {
-        temperature: 0.7, // Higher for creative/friendly tone
+        temperature: 0.7,
       }
     });
 
     return {
       ...billData,
-      analise_informal: summaryResponse.text || "Não foi possível gerar o resumo.",
+      analise_informal: summaryResponse.text || "Resumo indisponível.",
     };
 
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    // Repassa mensagem de erro mais amigável
-    if (error.message && error.message.includes("API Key")) {
-        throw new Error("Erro de configuração de API Key.");
+    if (error.message?.includes("API Key")) {
+        throw new Error("Erro de autenticação da API. Verifique a chave.");
     }
-    throw new Error(error.message || "Erro ao processar a imagem. Tente novamente com uma foto mais nítida.");
+    throw new Error(error.message || "Falha ao processar a conta. Tente uma imagem mais clara.");
   }
 };
