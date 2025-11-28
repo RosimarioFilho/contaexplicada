@@ -5,7 +5,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   // Carrega variáveis de ambiente do diretório atual
   // O terceiro parâmetro '' permite carregar todas as variáveis, independente do prefixo
-  const env = loadEnv(mode, process.cwd(), '');
+  // Fix: Use '.' instead of process.cwd() to avoid type issues if process is shadowed
+  const env = loadEnv(mode, '.', '');
 
   return {
     plugins: [react()],

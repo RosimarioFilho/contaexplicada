@@ -2,8 +2,14 @@ import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BillData } from "../types";
 import { BILL_RESPONSE_SCHEMA, SYSTEM_INSTRUCTION, ANALYSIS_PROMPT, SUMMARY_PROMPT_TEMPLATE } from "../constants";
 
-// Inicialização conforme diretrizes: usar process.env.API_KEY diretamente
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Inicialização segura: O Vite substituirá process.env.API_KEY pelo valor real no build
+const API_KEY = process.env.API_KEY;
+
+if (!API_KEY) {
+  console.warn("Aviso: API_KEY não detectada nas variáveis de ambiente. Verifique o arquivo .env ou as configurações da Vercel.");
+}
+
+const ai = new GoogleGenAI({ apiKey: API_KEY || '' });
 
 export const analyzeBillImage = async (base64Image: string, mimeType: string): Promise<BillData> => {
   try {
@@ -65,7 +71,7 @@ export const analyzeBillImage = async (base64Image: string, mimeType: string): P
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     if (error.message?.includes("API Key")) {
-        throw new Error("Erro de autenticação da API. Verifique a chave.");
+        throw new Error("Erro de autenticação da API. Verifique a chave VITE_API_KEY na Vercel.");
     }
     throw new Error(error.message || "Falha ao processar a conta. Tente uma imagem mais clara.");
   }
