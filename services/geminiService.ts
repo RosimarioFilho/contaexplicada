@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BillData } from "../types";
 import { BILL_RESPONSE_SCHEMA, SYSTEM_INSTRUCTION, ANALYSIS_PROMPT, SUMMARY_PROMPT_TEMPLATE } from "../constants";
 
@@ -18,11 +18,13 @@ const getApiKey = (): string => {
 
   // 2. Tenta pegar via process.env (Fallback para Node/Alguns ambientes de Build)
   try {
-    if (typeof process !== 'undefined' && process.env && process.env.VITE_API_KEY) {
-      return process.env.VITE_API_KEY;
+    // Acessa via globalThis para evitar erro TS2580 (Cannot find name 'process') sem @types/node
+    const globalEnv = globalThis as any;
+    if (globalEnv.process && globalEnv.process.env && globalEnv.process.env.VITE_API_KEY) {
+      return globalEnv.process.env.VITE_API_KEY;
     }
   } catch (e) {
-    // Silencia erros de 'process is not defined'
+    // Silencia erros
   }
 
   return '';
@@ -68,11 +70,12 @@ export const analyzeBillImage = async (base64Image: string, mimeType: string): P
         responseSchema: BILL_RESPONSE_SCHEMA,
         temperature: 0.1, // Low temperature for factual extraction
         // Safety Settings Permissivos para evitar bloqueio de leitura de documentos
+        // Usando Enums corretos do @google/genai
         safetySettings: [
-           { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-           { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-           { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" }
+           { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+           { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+           { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+           { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE }
         ]
       },
     });
