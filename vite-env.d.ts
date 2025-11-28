@@ -1,2 +1,8 @@
-// Removed reference to vite/client to fix missing type definition error.
-// API Key is now accessed via process.env.API_KEY as per guidelines.
+/// <reference types="vite/client" />
+
+declare namespace NodeJS {
+  interface ProcessEnv {
+    API_KEY: string;
+    [key: string]: string | undefined;
+  }
+}
