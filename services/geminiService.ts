@@ -3,9 +3,15 @@ import { BillData } from "../types";
 import { BILL_RESPONSE_SCHEMA, SYSTEM_INSTRUCTION, ANALYSIS_PROMPT, SUMMARY_PROMPT_TEMPLATE } from "../constants";
 
 // Initialize Gemini Client
-// In a real production app, ensure API_KEY is set in environment variables.
-// For this generated code, we assume process.env.API_KEY is available.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// VITE requires environment variables to start with VITE_ and be accessed via import.meta.env
+const apiKey = (import.meta as any).env.VITE_API_KEY || '';
+
+// Fallback para evitar crash se a chave não estiver configurada, mas logando aviso
+if (!apiKey) {
+  console.warn("VITE_API_KEY não encontrada. Configure nas variáveis de ambiente da Vercel.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey });
 
 export const analyzeBillImage = async (base64Image: string, mimeType: string): Promise<BillData> => {
   try {
