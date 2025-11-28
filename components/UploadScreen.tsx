@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState } from 'react';
 import { Upload, Camera, FileText, ShieldCheck, Search, FileJson, Sparkles, BrainCircuit, CheckCircle2, ChevronDown, Zap } from 'lucide-react';
 
@@ -93,7 +94,7 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onFileSelected }) => {
   ];
 
   const distributors = [
-    "Enel", "CPFL", "Cemig", "Light", "Copel", "Equatorial", "Neoenergia", "RGE", "Energisa", "Coelba", "Elektro"
+    "Enel", "CPFL", "Cemig", "Light", "Copel", "Neoenergia", "Equatorial", "RGE", "Energisa", "Coelba", "Elektro"
   ];
 
   const toggleFaq = (index: number) => {
@@ -184,12 +185,23 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onFileSelected }) => {
         {/* SEO: Supported Distributors Section */}
         <section className="w-full max-w-4xl mb-20 text-center">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Compatível com contas de todo o Brasil</h3>
-            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-                {distributors.map((dist, i) => (
-                    <span key={i} className="text-lg font-semibold text-slate-500 hover:text-brand-primary cursor-default">
-                        {dist}
-                    </span>
-                ))}
+            <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-4">
+                {distributors.map((dist, i) => {
+                    const isNeoenergia = dist === "Neoenergia";
+                    return (
+                        <span 
+                            key={i} 
+                            className={`text-lg transition-all duration-300 cursor-default flex items-center justify-center
+                                ${isNeoenergia 
+                                    ? "font-black text-green-700 opacity-100 scale-110 bg-green-50 px-4 py-1.5 rounded-full border border-green-200 shadow-sm" 
+                                    : "font-semibold text-slate-400 opacity-50 grayscale hover:grayscale-0 hover:text-brand-primary hover:opacity-100"
+                                }
+                            `}
+                        >
+                            {dist}
+                        </span>
+                    );
+                })}
             </div>
         </section>
 
