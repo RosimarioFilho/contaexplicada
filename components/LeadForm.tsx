@@ -15,6 +15,8 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting }) => {
     estado: ''
   });
 
+  const [validationErrors, setValidationErrors] = useState<Partial<LeadData>>({});
+
   // Funções de formatação (Máscaras)
   const formatPhone = (value: string) => {
     return value
@@ -32,7 +34,6 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting }) => {
   };
 
   const fetchCep = async (cepRaw: string) => {
-    // Remove qualquer caractere não numérico para consultar a API
     const cleanCep = cepRaw.replace(/\D/g, '');
     
     if (cleanCep.length === 8) {
@@ -42,11 +43,12 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting }) => {
         if (!data.erro) {
             setFormData(prev => ({ ...prev, estado: data.uf }));
         } else {
-            // CEP não encontrado
             setFormData(prev => ({ ...prev, estado: '' }));
+            setValidationErrors(prev => ({...prev, cep: 'CEP não encontrado.'}))
         }
       } catch (e) {
         console.error("Erro ao buscar CEP", e);
+        setFormData(prev => ({ ...prev, estado: '' }));
       }
     }
   };
@@ -59,17 +61,43 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting }) => {
       finalValue = formatPhone(value);
     } else if (name === 'cep') {
       finalValue = formatCep(value);
-      // Tenta buscar o CEP se tiver 8 dígitos numéricos
+      if(validationErrors.cep && finalValue.replace(/\D/g, '').length === 8) {
+        setValidationErrors(prev => ({...prev, cep: ''}));
+      }
       fetchCep(finalValue);
     }
 
     setFormData(prev => ({ ...prev, [name]: finalValue }));
+    if(validationErrors[name as keyof LeadData] && value.trim() !== '') {
+        setValidationErrors(prev => ({...prev, [name]: ''}));
+    }
   };
+
+  const validateForm = (): boolean => {
+    const errors: Partial<LeadData> = {};
+    if (!formData.nome.trim()) {
+      errors.nome = 'O nome completo é obrigatório.';
+    }
+    if (formData.whatsapp.replace(/\D/g, '').length < 11) {
+      errors.whatsapp = 'Por favor, insira um WhatsApp válido com DDD.';
+    }
+    if (formData.cep.replace(/\D/g, '').length < 8) {
+      errors.cep = 'Por favor, insira um CEP válido.';
+    }
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    if (validateForm()) {
+      onSubmit(formData);
+    }
   };
+  
+  const getBorderColor = (field: keyof LeadData) => {
+      return validationErrors[field] ? 'border-red-500' : 'border-slate-300';
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-4">
@@ -90,12 +118,12 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting }) => {
             <input
               type="text"
               name="nome"
-              required
-              className="w-full p-3 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all outline-none font-medium"
+              className={`w-full p-3 bg-white border ${getBorderColor('nome')} rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all outline-none font-medium`}
               placeholder="Ex: João Silva"
               value={formData.nome}
               onChange={handleChange}
             />
+            {validationErrors.nome && <p className="text-red-500 text-xs mt-1">{validationErrors.nome}</p>}
           </div>
 
           <div>
@@ -103,13 +131,13 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting }) => {
             <input
               type="tel"
               name="whatsapp"
-              required
-              className="w-full p-3 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all outline-none font-medium"
+              className={`w-full p-3 bg-white border ${getBorderColor('whatsapp')} rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all outline-none font-medium`}
               placeholder="(11) 99999-9999"
               value={formData.whatsapp}
               onChange={handleChange}
               maxLength={15}
             />
+             {validationErrors.whatsapp && <p className="text-red-500 text-xs mt-1">{validationErrors.whatsapp}</p>}
           </div>
 
           <div className="flex gap-4">
@@ -118,13 +146,13 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting }) => {
               <input
                 type="text"
                 name="cep"
-                required
-                className="w-full p-3 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all outline-none font-medium"
+                className={`w-full p-3 bg-white border ${getBorderColor('cep')} rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all outline-none font-medium`}
                 placeholder="00000-000"
                 value={formData.cep}
                 onChange={handleChange}
                 maxLength={9}
               />
+               {validationErrors.cep && <p className="text-red-500 text-xs mt-1">{validationErrors.cep}</p>}
             </div>
             <div className="w-1/3">
               <label className="block text-sm font-semibold text-slate-700 mb-1">UF</label>

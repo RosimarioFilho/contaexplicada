@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BillData, SolarCalculation } from '../types';
 import { calculateSolarSavings } from '../services/solarService';
-import { ArrowRight, Bot, User, ArrowDown, Check, RotateCcw, Info, Zap } from 'lucide-react';
+import { ArrowRight, Bot, User, ArrowDown, Check, RotateCcw, Info, Zap, DollarSign } from 'lucide-react';
 
 interface ResultsScreenProps {
   data: BillData;
@@ -40,6 +41,17 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
       }
     }
   }, [data]);
+
+  // Value Reinforcement Calculation for Solar Users
+  const valorEstimadoSemSolar = useMemo(() => {
+    if (!data.tem_energia_solar || !data.leituras?.atual || !data.leituras?.anterior) {
+      return null;
+    }
+    const consumoReal = data.leituras.atual - data.leituras.anterior;
+    if (consumoReal <= 0) return null;
+    return consumoReal * 1.15;
+  }, [data]);
+
 
   // Scroll Helper
   const scrollToBottom = () => {
@@ -199,37 +211,71 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
         )}
 
         {/* =========================================================
-            SOLAR USER EXCLUSIVE CONTENT (TUSD GD EXPLANATION)
+            SOLAR USER EXCLUSIVE CONTENT
            ========================================================= */}
         {isSolarUser && typingComplete && (
-          <div className="flex gap-3 animate-reveal">
-            <div className="w-10 h-10 rounded-full bg-solar flex items-center justify-center flex-shrink-0 text-brand-dark shadow-md border border-yellow-300 mt-auto">
-              <Zap size={20} fill="currentColor" />
-            </div>
-            <div className="bg-orange-50 p-5 rounded-2xl rounded-bl-none border border-orange-200 max-w-[90%] text-slate-800 shadow-sm">
-              <h4 className="font-bold text-orange-800 mb-3 flex items-center gap-2 text-base">
-                <Info size={18} className="text-orange-600"/> 
-                Entendendo a "Taxa do Sol" (TUSD GD)
-              </h4>
-              
-              <div className="space-y-3 text-sm leading-relaxed text-slate-700">
-                <p>
-                  Percebi que você tem energia solar! É comum surgir dúvidas sobre a cobrança da <strong>TUSD G</strong> ou <strong>Fio B</strong> na sua fatura.
-                </p>
+          <>
+            {/* TUSD GD EXPLANATION */}
+            <div className="flex gap-3 animate-reveal delay-100">
+              <div className="w-10 h-10 rounded-full bg-solar flex items-center justify-center flex-shrink-0 text-brand-dark shadow-md border border-yellow-300 mt-auto">
+                <Zap size={20} fill="currentColor" />
+              </div>
+              <div className="bg-orange-50 p-5 rounded-2xl rounded-bl-none border border-orange-200 max-w-[90%] text-slate-800 shadow-sm">
+                <h4 className="font-bold text-orange-800 mb-3 flex items-center gap-2 text-base">
+                  <Info size={18} className="text-orange-600"/> 
+                  Entendendo a "Taxa do Sol" (TUSD GD)
+                </h4>
                 
-                <div className="bg-white/60 p-3 rounded-lg border border-orange-100">
-                  <p className="font-medium text-orange-900 mb-1">O que é isso?</p>
+                <div className="space-y-3 text-sm leading-relaxed text-slate-700">
                   <p>
-                    Não é uma taxa extra arbitrária. É a remuneração pelo uso da rede da distribuidora (postes, fios, transformadores) que você usa para injetar sua energia excedente.
+                    Percebi que você tem energia solar! É comum surgir dúvidas sobre a cobrança da <strong>TUSD G</strong> ou <strong>Fio B</strong> na sua fatura.
+                  </p>
+                  
+                  <div className="bg-white/60 p-3 rounded-lg border border-orange-100">
+                    <p className="font-medium text-orange-900 mb-1">O que é isso?</p>
+                    <p>
+                      Não é uma taxa extra arbitrária. É a remuneração pelo uso da rede da distribuidora (postes, fios, transformadores) que você usa para injetar sua energia excedente.
+                    </p>
+                  </div>
+
+                  <p>
+                    Isso foi regulamentado pela <strong>Lei 14.300 (Marco Legal)</strong> e pela ANEEL. Basicamente, é como pagar um "pedágio" apenas pelo transporte da energia que você envia para a rua.
                   </p>
                 </div>
-
-                <p>
-                  Isso foi regulamentado pela <strong>Lei 14.300 (Marco Legal)</strong> e pela ANEEL. Basicamente, é como pagar um "pedágio" apenas pelo transporte da energia que você envia para a rua.
-                </p>
               </div>
             </div>
-          </div>
+
+            {/* VALUE REINFORCEMENT CARD */}
+            {valorEstimadoSemSolar && (
+              <div className="flex gap-3 animate-reveal delay-300">
+                <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0 text-white shadow-md border border-green-400 mt-auto">
+                  <DollarSign size={20} />
+                </div>
+                <div className="bg-green-50 p-5 rounded-2xl rounded-bl-none border border-green-200 max-w-[90%] text-slate-800 shadow-sm">
+                  <h4 className="font-bold text-green-800 mb-3 flex items-center gap-2 text-base">
+                    Reforço de Valor: Sua Economia Real
+                  </h4>
+                  
+                  <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+                    <p>
+                      Com base no seu consumo real de <strong>{((data.leituras?.atual ?? 0) - (data.leituras?.anterior ?? 0)).toFixed(0)} kWh</strong>,
+                      estimamos que sua conta de luz, sem o sistema solar, seria de aproximadamente:
+                    </p>
+
+                    <div className="text-center bg-white/60 p-3 rounded-lg border border-green-100 my-2">
+                      <p className="text-3xl font-bold text-green-700">
+                        R$ {valorEstimadoSemSolar.toFixed(2).replace('.', ',')}
+                      </p>
+                    </div>
+
+                    <p>
+                      Em vez disso, você pagou apenas <strong>R$ {data.valor_total?.toFixed(2).replace('.', ',')}</strong>. Um excelente investimento!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* =========================================================
