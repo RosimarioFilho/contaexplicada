@@ -1,10 +1,13 @@
 
+
 import { Type } from "@google/genai";
 
 // Schema for Gemini JSON response
 export const BILL_RESPONSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
+    nome_titular: { type: Type.STRING, description: "Nome completo do titular da conta de energia." },
+    cep: { type: Type.STRING, description: "CEP (Código de Endereçamento Postal) do endereço do titular. Formato: 00000-000" },
     mes_referencia: { type: Type.STRING, description: "Mês e ano da conta (ex: 10/2025)" },
     consumo_kwh: { type: Type.NUMBER, description: "O consumo final FATURADO (após abatimento dos créditos). Ex: 24.96" },
     valor_total: { type: Type.NUMBER, description: "Valor total da fatura em R$" },
@@ -50,12 +53,14 @@ export const BILL_RESPONSE_SCHEMA = {
       }
     }
   },
-  required: ["consumo_kwh", "valor_total", "tem_energia_solar"],
+  required: ["consumo_kwh", "valor_total", "tem_energia_solar", "nome_titular", "cep"],
 };
 
 export const SYSTEM_INSTRUCTION = `
 Você é um auditor especialista em faturas de energia elétrica (ANEEL).
 Sua missão é desvendar a matemática da conta para o cliente de forma visual e didática.
+Extraia o nome completo do titular da fatura.
+Extraia o CEP do endereço do titular.
 
 REGRAS CRÍTICAS PARA CLIENTES COM ENERGIA SOLAR:
 1. A matemática da conta solar é: (Leitura Atual - Leitura Anterior) = Consumo Real.
@@ -68,9 +73,11 @@ Seja extremamente preciso ao capturar: Leitura Atual, Leitura Anterior e Crédit
 
 export const ANALYSIS_PROMPT = `
 Analise esta fatura.
-1. Extraia Leitura Atual e Leitura Anterior da tabela de medição.
-2. Identifique o valor de Energia Compensada/Injetada (CAT/Créditos).
-3. Extraia TE, TUSD, Impostos e Histórico.
+1. Extraia o nome do titular.
+2. Extraia o CEP do endereço.
+3. Extraia Leitura Atual e Leitura Anterior da tabela de medição.
+4. Identifique o valor de Energia Compensada/Injetada (CAT/Créditos).
+5. Extraia TE, TUSD, Impostos e Histórico.
 `;
 
 export const SUMMARY_PROMPT_TEMPLATE = (data: any) => `

@@ -1,21 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LeadData } from '../types';
 import { CheckCircle } from 'lucide-react';
 
 interface LeadFormProps {
   onSubmit: (data: LeadData) => void;
   isSubmitting: boolean;
+  initialName?: string;
+  initialCep?: string;
 }
 
-const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting }) => {
+const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting, initialName = '', initialCep = '' }) => {
   const [formData, setFormData] = useState<LeadData>({
-    nome: '',
+    nome: initialName,
     whatsapp: '',
     cep: '',
     estado: ''
   });
 
   const [validationErrors, setValidationErrors] = useState<Partial<LeadData>>({});
+  const whatsappInputRef = useRef<HTMLInputElement>(null);
+
+  // Efeito para focar automaticamente no campo de WhatsApp
+  useEffect(() => {
+    if (whatsappInputRef.current) {
+      whatsappInputRef.current.focus();
+    }
+  }, []);
+
 
   // Funções de formatação (Máscaras)
   const formatPhone = (value: string) => {
@@ -52,6 +63,16 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting }) => {
       }
     }
   };
+
+  // Efeito para pré-preencher CEP e buscar UF
+  useEffect(() => {
+    if (initialCep) {
+      const formattedCep = formatCep(initialCep);
+      setFormData(prev => ({ ...prev, cep: formattedCep }));
+      fetchCep(formattedCep);
+    }
+  }, [initialCep]);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -129,6 +150,7 @@ const LeadForm: React.FC<LeadFormProps> = ({ onSubmit, isSubmitting }) => {
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">WhatsApp</label>
             <input
+              ref={whatsappInputRef}
               type="tel"
               name="whatsapp"
               className={`w-full p-3 bg-white border ${getBorderColor('whatsapp')} rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all outline-none font-medium`}

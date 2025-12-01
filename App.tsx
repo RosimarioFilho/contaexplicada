@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AppStep, BillData, SolarCalculation, LeadData } from './types';
 import { analyzeBillImage } from './services/geminiService';
@@ -26,13 +25,52 @@ export default function App() {
       reader.readAsDataURL(file);
       reader.onload = () => {
         const result = reader.result as string;
-        // Remove data url prefix for Gemini API (e.g. "data:image/jpeg;base64,")
         const base64 = result.split(',')[1];
         resolve(base64);
       };
       reader.onerror = error => reject(error);
     });
   };
+  
+  // Função Centralizada para Webhook com Título Dinâmico
+  const sendWebhookEvent = async (tituloNotificacao: string, eventBillData: BillData | null, leadDetails?: LeadData) => {
+    const dataToUse = eventBillData || billData;
+
+    const valorFormatado = dataToUse?.valor_total 
+      ? `R$ ${dataToUse.valor_total.toFixed(2).replace('.', ',')}` 
+      : "R$ 0,00";
+      
+    const consumoFormatado = dataToUse?.consumo_kwh 
+      ? `${dataToUse.consumo_kwh}kwh` 
+      : "0kwh";
+
+    const mesReferencia = dataToUse?.mes_referencia || "Não identificado";
+    const nomeTitular = dataToUse?.nome_titular || "Não identificado";
+
+    const payload = {
+      titulo_notificacao: tituloNotificacao,
+      evento: tituloNotificacao.replace(/\s+/g, '_').toUpperCase(),
+      "Nome do Titular": nomeTitular,
+      "Nome completo": leadDetails?.nome || "N/A",
+      "whatsapp": leadDetails?.whatsapp || "N/A",
+      "cep": leadDetails?.cep || "N/A",
+      "UF": leadDetails?.estado || "N/A",
+      "valor da conta": valorFormatado,
+      "referencia das conta": mesReferencia,
+      "consumo em kwh da conta": consumoFormatado
+    };
+
+    try {
+      await fetch('https://webhooks-mvp.crescimentoespiritual.com.br/webhook/contaexplicada', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      console.error(`Erro ao enviar evento '${tituloNotificacao}' para webhook:`, error);
+    }
+  };
+
 
   const handleFileSelected = async (file: File) => {
     setStep(AppStep.PROCESSING);
@@ -41,10 +79,15 @@ export default function App() {
       const mimeType = file.type;
       
       const data = await analyzeBillImage(base64, mimeType);
+      
+      // Envia o evento de análise concluída ANTES de mostrar os resultados
+      await sendWebhookEvent(`Análise Concluída: ${data.nome_titular || 'Titular não encontrado'}`, data);
+
       setBillData(data);
       setStep(AppStep.RESULTS);
-    } catch (error) {
-      alert("Não foi possível ler a conta com clareza. Por favor, tente uma foto mais nítida e bem iluminada.");
+
+    } catch (error: any) {
+      alert(error.message || "Não foi possível ler a conta com clareza. Por favor, tente uma foto mais nítida e bem iluminada.");
       setStep(AppStep.UPLOAD);
       console.error(error);
     }
@@ -52,48 +95,15 @@ export default function App() {
 
   const handleContinueToLead = (calc: SolarCalculation) => {
     setSolarCalc(calc);
+    // Evento: Usuário demonstrou interesse
+    sendWebhookEvent("Usuário clicou em: 'Sim, quero a simulação completa'", billData);
     setStep(AppStep.LEAD_CAPTURE);
   };
 
   const handleLeadSubmit = async (leadData: LeadData) => {
     setIsSubmitting(true);
-    
-    // Formatação segura de valores para evitar erros se os dados forem null
-    const valorFormatado = billData?.valor_total 
-      ? `R$ ${billData.valor_total.toFixed(2).replace('.', ',')}` 
-      : "R$ 0,00";
-      
-    const consumoFormatado = billData?.consumo_kwh 
-      ? `${billData.consumo_kwh}kwh` 
-      : "0kwh";
-
-    const mesReferencia = billData?.mes_referencia || "Não identificado";
-
-    const payload = {
-      "Nome completo": leadData.nome,
-      "whatsapp": leadData.whatsapp,
-      "cep": leadData.cep,
-      "UF": leadData.estado,
-      "valor da conta": valorFormatado,
-      "referencia das conta": mesReferencia,
-      "consumo em kwh da conta": consumoFormatado
-    };
-
-    console.log("ENVIANDO DADOS PARA WEBHOOK:", payload);
-
-    try {
-      await fetch('https://webhooks-mvp.crescimentoespiritual.com.br/webhook/contaexplicada', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-    } catch (error) {
-      console.error("Erro ao enviar webhook:", error);
-      // Mesmo com erro de rede, avançamos para a tela de sucesso para não travar o usuário
-    }
-    
+    // Evento: Usuário preencheu e enviou o formulário
+    await sendWebhookEvent("Novo Lead Qualificado (Formulário Preenchido)", billData, leadData);
     setIsSubmitting(false);
     setStep(AppStep.SUCCESS);
   };
@@ -142,10 +152,12 @@ export default function App() {
           />
         )}
 
-        {step === AppStep.LEAD_CAPTURE && (
+        {step === AppStep.LEAD_CAPTURE && billData && (
           <LeadForm 
             onSubmit={handleLeadSubmit} 
             isSubmitting={isSubmitting} 
+            initialName={billData.nome_titular || ''}
+            initialCep={billData.cep || ''}
           />
         )}
 

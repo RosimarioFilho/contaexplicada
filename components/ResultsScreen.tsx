@@ -1,9 +1,8 @@
 
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BillData, SolarCalculation } from '../types';
 import { calculateSolarSavings } from '../services/solarService';
-import { ArrowRight, Bot, User, ArrowDown, Check, RotateCcw, Info, Zap, DollarSign } from 'lucide-react';
+import { ArrowRight, Bot, User, Check, RotateCcw, Info, Zap, DollarSign } from 'lucide-react';
 
 interface ResultsScreenProps {
   data: BillData;
@@ -35,7 +34,6 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
   useEffect(() => {
     if (data) {
       setCalculation(calculateSolarSavings(data));
-      // Split AI text by the delimiter to create separate bubbles
       if (data.analise_informal) {
         rawMessagesRef.current = data.analise_informal.split('###').map(s => s.trim()).filter(s => s.length > 0);
       }
@@ -93,18 +91,16 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
       if (charIndex >= currentFullText.length) {
         clearInterval(typeInterval);
         
-        // Message finished typing
         setMessages(prev => [...prev, currentFullText]);
         setDisplayedCurrentMessage('');
         setIsTyping(false);
-        setIsThinking(true); // Pause/Think before next message
+        setIsThinking(true);
 
-        // Delay before starting next message
         setTimeout(() => {
           setCurrentMessageIndex(prev => prev + 1);
-        }, 1500); // 1.5s pause between messages
+        }, 1500);
       }
-    }, 25); // Typing speed
+    }, 25);
 
     return () => clearInterval(typeInterval);
   }, [currentMessageIndex, data.tem_energia_solar]);
@@ -131,16 +127,17 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
   // Handler for User Interaction
   const handleResponse = (response: 'sim' | 'nao') => {
     setUserResponse(response);
-    setTimeout(scrollToBottom, 100);
+    if (response === 'sim' && calculation) {
+      // **AÇÃO OTIMIZADA: Leva direto para o formulário de lead**
+      onContinue(calculation);
+    }
   };
 
   if (!calculation) return null;
 
   const isSolarUser = data.tem_energia_solar;
 
-  // Helper to format text with bold logic
   const renderFormattedText = (text: string) => {
-    // Replace markdown bold (**text**) with HTML bold
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -153,13 +150,11 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
   return (
     <div className="max-w-2xl mx-auto min-h-[calc(100vh-80px)] bg-slate-50 flex flex-col relative">
       
-      {/* Chat Container */}
       <div 
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-6 pb-32 scroll-smooth"
       >
         
-        {/* Header Avatar */}
         <div className="flex justify-center mb-6">
           <div className="bg-white p-2 rounded-full shadow-sm border border-slate-100 flex items-center gap-2 px-4">
              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -167,7 +162,6 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
           </div>
         </div>
 
-        {/* 1. History Messages (Completed Bubbles) */}
         {messages.map((msg, idx) => (
           <div key={idx} className="flex gap-3 animate-reveal">
             <div className="w-10 h-10 rounded-full bg-brand-primary flex items-center justify-center flex-shrink-0 text-white shadow-md mt-auto">
@@ -181,7 +175,6 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
           </div>
         ))}
 
-        {/* 2. Current Typing Message */}
         {isTyping && (
           <div className="flex gap-3">
             <div className="w-10 h-10 rounded-full bg-brand-primary flex items-center justify-center flex-shrink-0 text-white shadow-md mt-auto">
@@ -196,7 +189,6 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
           </div>
         )}
 
-        {/* 3. Thinking Indicator (Between Messages) */}
         {isThinking && (
           <div className="flex gap-3">
              <div className="w-8 h-8 rounded-full bg-brand-primary/50 flex items-center justify-center flex-shrink-0 text-white mt-auto animate-pulse">
@@ -210,12 +202,8 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
           </div>
         )}
 
-        {/* =========================================================
-            SOLAR USER EXCLUSIVE CONTENT
-           ========================================================= */}
         {isSolarUser && typingComplete && (
           <>
-            {/* TUSD GD EXPLANATION */}
             <div className="flex gap-3 animate-reveal delay-100">
               <div className="w-10 h-10 rounded-full bg-solar flex items-center justify-center flex-shrink-0 text-brand-dark shadow-md border border-yellow-300 mt-auto">
                 <Zap size={20} fill="currentColor" />
@@ -225,19 +213,16 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
                   <Info size={18} className="text-orange-600"/> 
                   Entendendo a "Taxa do Sol" (TUSD GD)
                 </h4>
-                
                 <div className="space-y-3 text-sm leading-relaxed text-slate-700">
                   <p>
                     Percebi que você tem energia solar! É comum surgir dúvidas sobre a cobrança da <strong>TUSD G</strong> ou <strong>Fio B</strong> na sua fatura.
                   </p>
-                  
                   <div className="bg-white/60 p-3 rounded-lg border border-orange-100">
                     <p className="font-medium text-orange-900 mb-1">O que é isso?</p>
                     <p>
                       Não é uma taxa extra arbitrária. É a remuneração pelo uso da rede da distribuidora (postes, fios, transformadores) que você usa para injetar sua energia excedente.
                     </p>
                   </div>
-
                   <p>
                     Isso foi regulamentado pela <strong>Lei 14.300 (Marco Legal)</strong> e pela ANEEL. Basicamente, é como pagar um "pedágio" apenas pelo transporte da energia que você envia para a rua.
                   </p>
@@ -245,7 +230,6 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
               </div>
             </div>
 
-            {/* VALUE REINFORCEMENT CARD */}
             {valorEstimadoSemSolar && (
               <div className="flex gap-3 animate-reveal delay-300">
                 <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0 text-white shadow-md border border-green-400 mt-auto">
@@ -255,19 +239,16 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
                   <h4 className="font-bold text-green-800 mb-3 flex items-center gap-2 text-base">
                     Reforço de Valor: Sua Economia Real
                   </h4>
-                  
                   <div className="space-y-3 text-sm leading-relaxed text-slate-700">
                     <p>
                       Com base no seu consumo real de <strong>{((data.leituras?.atual ?? 0) - (data.leituras?.anterior ?? 0)).toFixed(0)} kWh</strong>,
                       estimamos que sua conta de luz, sem o sistema solar, seria de aproximadamente:
                     </p>
-
                     <div className="text-center bg-white/60 p-3 rounded-lg border border-green-100 my-2">
                       <p className="text-3xl font-bold text-green-700">
                         R$ {valorEstimadoSemSolar.toFixed(2).replace('.', ',')}
                       </p>
                     </div>
-
                     <p>
                       Em vez disso, você pagou apenas <strong>R$ {data.valor_total?.toFixed(2).replace('.', ',')}</strong>. Um excelente investimento!
                     </p>
@@ -278,11 +259,6 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
           </>
         )}
 
-        {/* =========================================================
-            NON-SOLAR FUNNEL (SALES PITCH)
-           ========================================================= */}
-
-        {/* 2. Injected Sales Pitch (Logic) */}
         {showSalesPitch && !isSolarUser && (
           <div className="flex gap-3 animate-reveal">
             <div className="w-10 h-10 rounded-full bg-brand-primary flex items-center justify-center flex-shrink-0 text-white shadow-md mt-auto">
@@ -300,7 +276,6 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
           </div>
         )}
 
-        {/* 3. The Question */}
         {showQuestion && !isSolarUser && (
           <div className="flex gap-3 animate-reveal">
              <div className="w-10 h-10 rounded-full bg-brand-primary flex items-center justify-center flex-shrink-0 text-white shadow-md mt-auto">
@@ -314,7 +289,6 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
           </div>
         )}
 
-        {/* 4. User Interaction (Buttons) */}
         {showOptions && !userResponse && !isSolarUser && (
           <div className="flex flex-col items-end gap-3 animate-reveal">
             <button 
@@ -331,72 +305,9 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ data, onContinue, onReset
             </button>
           </div>
         )}
-
-        {/* 5. User Selection Bubble */}
-        {userResponse === 'sim' && (
-           <div className="flex justify-end gap-3 animate-reveal">
-              <div className="bg-brand-primary p-4 rounded-2xl rounded-br-none shadow-sm text-white max-w-[80%]">
-                 <p>Sim, quero a simulação completa</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 text-slate-500 shadow-sm mt-auto">
-                <User size={20} />
-              </div>
-           </div>
-        )}
-
-        {/* 6. PHASE 2 - REVEALED CARD (Comparison) */}
-        {userResponse === 'sim' && (
-          <div className="mt-8 animate-reveal pb-8">
-            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-xl transition-shadow relative overflow-hidden">
-               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary to-solar"></div>
-               
-               <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                   <Check size={20} className="text-green-500" />
-                   Cenário Personalizado
-               </h3>
-               
-               <div className="flex items-center justify-between gap-2 mb-6 relative">
-                 <div className="text-center w-1/3">
-                   <p className="text-xs text-slate-400 font-semibold uppercase mb-1">Hoje</p>
-                   <p className="text-lg font-bold text-red-400 line-through decoration-red-400 decoration-2">
-                     R$ {data.valor_total?.toFixed(0)}
-                   </p>
-                 </div>
-                 
-                 <div className="flex flex-col items-center justify-center text-brand-primary w-1/3">
-                   <ArrowRight size={24} />
-                 </div>
-
-                 <div className="text-center w-1/3">
-                   <p className="text-xs text-green-600 font-semibold uppercase mb-1">Com Solar</p>
-                   <p className="text-3xl font-bold text-slate-800">
-                     R$ {calculation.nova_conta_estimada.toFixed(0)}
-                   </p>
-                 </div>
-               </div>
-
-               <div className="bg-green-50 text-green-700 p-4 rounded-xl flex items-center gap-3 mb-6">
-                  <ArrowDown size={20} className="flex-shrink-0" />
-                  <p className="text-sm font-medium leading-tight">
-                    Economia anual estimada: <span className="font-bold text-lg">R$ {calculation.economia_anual.toLocaleString('pt-BR')}</span>
-                  </p>
-               </div>
-
-               <button 
-                   onClick={() => onContinue(calculation)}
-                   className="w-full py-4 px-4 bg-solar hover:bg-solar-hover text-brand-dark font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-1"
-               >
-                   Gerar Relatório em PDF no WhatsApp
-               </button>
-               
-               <p className="text-xs text-center text-slate-400 mt-4">
-                 Simulação baseada na irradiação solar da sua região (CEP).
-               </p>
-            </div>
-          </div>
-        )}
-
-        {/* Handling "Não" response or Solar User Reset */}
+        
+        {/* ** CARD INTERMEDIÁRIO REMOVIDO PARA OTIMIZAR O FLUXO ** */}
+        
         {(userResponse === 'nao' || (isSolarUser && typingComplete)) && (
            <div className="flex justify-center mt-8 animate-reveal pb-8">
               <button 

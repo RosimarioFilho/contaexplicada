@@ -1,8 +1,11 @@
 
+
 export interface BillData {
+  nome_titular: string | null;
   mes_referencia: string | null;
   consumo_kwh: number | null; // Consumo Faturado (Final)
   valor_total: number | null;
+  cep: string | null; // CEP extraído da conta
   te: number | null;
   tusd: number | null;
   bandeira: string | null;
