@@ -49,7 +49,7 @@ export default function App() {
 
     const payload = {
       titulo_notificacao: tituloNotificacao,
-      evento: tituloNotificacao.replace(/\s+/g, '_').toUpperCase(),
+      evento: `Conta Explicada - ${tituloNotificacao}`,
       "Nome do Titular": nomeTitular,
       "Nome completo": leadDetails?.nome || "N/A",
       "whatsapp": leadDetails?.whatsapp || "N/A",
